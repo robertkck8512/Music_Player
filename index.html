@@ -351,6 +351,7 @@
       transition: color .18s ease, background .18s ease;
     }
 
+    .control-button svg { display: block; width: 55%; height: 55%; }
     .control-button:hover, .control-button.on { color: var(--accent-soft); background: #c3a7ff12; }
 
     .play-button {
@@ -443,7 +444,7 @@
     }
 
     @media (max-width: 560px) {
-      .app { padding: 16px 14px 130px; }
+      .app { padding: 16px 14px 210px; }
       .topbar { margin-bottom: 18px; }
       .brand { font-size: 18px; }
       .brand-mark { width: 35px; height: 35px; }
@@ -462,17 +463,20 @@
       .track-title { font-size: 12px; }
       .track-artist, .track-duration { font-size: 10px; }
       .track-head { font-size: 8px; }
-      .bottom-player { grid-template-columns: minmax(0, 1fr) auto; gap: 0 7px; padding: 9px 11px 10px; }
+      .bottom-player { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px)); }
       .now-playing { grid-column: 1; grid-row: 1; gap: 9px; }
       .cover-art { width: 38px; height: 38px; }
       .now-title { font-size: 11px; }
       .now-artist { font-size: 9px; }
       .player-center { display: contents; }
-      .player-controls { grid-column: 2; grid-row: 1; gap: 2px; }
-      .control-button { width: 27px; height: 32px; font-size: 13px; }
-      .play-button { width: 32px; height: 32px; }
-      .progress-row { grid-column: 1 / 3; grid-row: 2; gap: 7px; margin-top: 6px; }
-      .toast { bottom: 100px; }
+      .player-controls { grid-column: 1; grid-row: 2; justify-content: space-between; gap: 0; width: 100%; max-width: 380px; margin: 0 auto; }
+      .control-button { width: 54px; height: 54px; border-radius: 16px; }
+      .play-button { width: 64px; height: 64px; padding-left: 4px; font-size: 24px; }
+      .progress-row { grid-column: 1; grid-row: 3; gap: 9px; margin-top: 2px; font-size: 11px; }
+      .range { height: 6px; }
+      .range::-webkit-slider-thumb { width: 18px; height: 18px; }
+      .range::-moz-range-thumb { width: 18px; height: 18px; }
+      .toast { bottom: 200px; }
     }
   </style>
 </head>
@@ -497,7 +501,10 @@
       <!-- The category values here match SONGS[].category below. -->
       <aside class="sidebar" aria-label="Music categories">
         <div class="side-label" data-i18n="library">你的音乐</div>
-        <button class="nav-item active" type="button" data-category="mandarin">
+        <button class="nav-item active" type="button" data-category="all">
+          <span class="nav-icon" aria-hidden="true"><svg class="music-icon" viewBox="0 0 24 24" focusable="false"><path d="M9 18V5l12-2v13M9 9l12-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="6" cy="18" r="3" fill="currentColor"></circle><circle cx="18" cy="16" r="3" fill="currentColor"></circle></svg></span><span data-i18n="all">全部混合</span>
+        </button>
+        <button class="nav-item" type="button" data-category="mandarin">
           <span class="nav-icon" aria-hidden="true"><svg class="music-icon" viewBox="0 0 24 24" focusable="false"><path d="M9 18V5l12-2v13M9 9l12-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="6" cy="18" r="3" fill="currentColor"></circle><circle cx="18" cy="16" r="3" fill="currentColor"></circle></svg></span><span data-i18n="mandarin">中文</span>
         </button>
         <button class="nav-item" type="button" data-category="cantonese">
@@ -512,7 +519,7 @@
         <!-- Track list and playback-mode controls. -->
         <div class="section-head">
           <div>
-            <div class="eyebrow" id="categoryLabel">中文歌单</div>
+            <div class="eyebrow" id="categoryLabel">全部混合歌单</div>
             <h2 data-i18n="playlist">全部曲目</h2>
           </div>
           <div class="count" id="trackCount">0 首歌曲</div>
@@ -555,11 +562,11 @@
 
     <div class="player-center">
       <div class="player-controls">
-        <button class="control-button" id="shuffleBtn" type="button" aria-label="Shuffle" title="Shuffle">⤨</button>
-        <button class="control-button" id="prevBtn" type="button" aria-label="Previous track">|◀</button>
+        <button class="control-button" id="shuffleBtn" type="button" aria-label="Shuffle" title="Shuffle"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg></button>
+        <button class="control-button" id="prevBtn" type="button" aria-label="Previous track"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20 9 12l10-8z" fill="currentColor"/><path d="M5 19V5"/></svg></button>
         <button class="play-button" id="playBtn" type="button" aria-label="Play">▶</button>
-        <button class="control-button" id="nextBtn" type="button" aria-label="Next track">▶|</button>
-        <button class="control-button" id="repeatBtn" type="button" aria-label="Repeat" title="Repeat">↻</button>
+        <button class="control-button" id="nextBtn" type="button" aria-label="Next track"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l10 8-10 8z" fill="currentColor"/><path d="M19 5v14"/></svg></button>
+        <button class="control-button" id="repeatBtn" type="button" aria-label="Repeat" title="Repeat"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg></button>
       </div>
       <div class="progress-row">
         <span class="time" id="currentTime">0:00</span>
@@ -589,6 +596,8 @@
          - "mandarin"  Chinese songs (internal category key)
          - "cantonese" Cantonese songs
          - "english"   English songs
+       The "all" tab (mix of every song) is built automatically; no need
+       to tag songs for it.
 
        The browser cannot automatically scan a folder, so this small catalog
        is how the static page knows which songs to display. Filenames are
@@ -611,12 +620,12 @@
 		 { title: "七里香", artist: "周杰伦", category: "mandarin", src: "七里香.mp3", volumeLevel: 0},
 		 { title: "告白氣球", artist: "周杰伦", category: "mandarin", src: "告白氣球.mp3", volumeLevel: 0},
 		 { title: "小幸運", artist: "田馥甄", category: "mandarin", src: "小幸運.mp3", volumeLevel: 0},
-		 { title: "美丽的神话", artist: "成龙/金喜善", category: "mandarin", src: "美丽的神话.mp3", volumeLevel: 0},
+		 { title: "美丽的神话", artist: "胡歌", category: "mandarin", src: "美丽的神话.mp3", volumeLevel: 0},
 		 { title: "欧若拉", artist: "張韶涵", category: "mandarin", src: "欧若拉.mp3", volumeLevel: 0},
 		 { title: "突然好想你", artist: "五月天", category: "mandarin", src: "突然好想你.mp3", volumeLevel: 0},
 		 { title: "恋爱ing", artist: "五月天", category: "mandarin", src: "恋爱ing.mp3", volumeLevel: 0},
 		 { title: "一千年以后", artist: "林俊杰", category: "mandarin", src: "一千年以后.mp3", volumeLevel: 0},
-		 { title: "小酒窝", artist: "林俊杰", category: "mandarin", src: "小酒窝.mp3", volumeLevel: 0},	 
+		 { title: "小酒窝", artist: "林俊杰 & 蔡卓妍", category: "mandarin", src: "小酒窝.mp3", volumeLevel: 0},	 
 		 { title: "光年之外", artist: "鄧紫棋", category: "mandarin", src: "光年之外.mp3", volumeLevel: 0},
 		 { title: "最炫民族风", artist: "凤凰传奇", category: "mandarin", src: "最炫民族风.mp3", volumeLevel: 0},
 		 { title: "孤勇者", artist: "陈奕迅", category: "mandarin", src: "孤勇者.mp3", volumeLevel: 0},
@@ -668,6 +677,7 @@
     const TEXT = {
       zh: {
         library: "你的音乐",
+        all: "全部混合",
         mandarin: "中文",
         cantonese: "粤语",
         english: "英语",
@@ -680,7 +690,7 @@
         ready: "选择一首歌曲开始聆听",
         emptyTitle: "这里还没有歌曲",
         emptyHint: "添加到这个分类的歌曲会显示在这里。",
-        categoryLabels: { mandarin: "中文歌单", cantonese: "粤语歌单", english: "英语歌单" },
+        categoryLabels: { all: "全部混合歌单", mandarin: "中文歌单", cantonese: "粤语歌单", english: "英语歌单" },
         count: count => `${count} 首歌曲`,
         unknownArtist: "未知艺人",
         noSongs: "当前分类还没有歌曲。",
@@ -688,6 +698,7 @@
       },
       en: {
         library: "YOUR LIBRARY",
+        all: "All Mixed",
         mandarin: "Chinese",
         cantonese: "Cantonese",
         english: "English",
@@ -700,7 +711,7 @@
         ready: "Choose a track to start listening",
         emptyTitle: "No tracks yet",
         emptyHint: "Songs in this category will show up here.",
-        categoryLabels: { mandarin: "Chinese playlist", cantonese: "Cantonese playlist", english: "English playlist" },
+        categoryLabels: { all: "All mixed playlist", mandarin: "Chinese playlist", cantonese: "Cantonese playlist", english: "English playlist" },
         count: count => `${count} ${count === 1 ? "song" : "songs"}`,
         unknownArtist: "Unknown artist",
         noSongs: "There are no tracks in this category yet.",
@@ -716,7 +727,7 @@
     const trackCatalog = SONGS.map((song, index) => ({ ...song, id: String(index), duration: 0 }));
 
     let interfaceLanguage = "zh";
-    let activeCategory = "mandarin";
+    let activeCategory = "all";
     let playbackMode = "all";
     let currentTrackIndex = -1;
     let toastTimeout;
@@ -769,7 +780,7 @@
     const text = () => TEXT[interfaceLanguage];
     const tracksInActiveCategory = () => trackCatalog
       .map((track, index) => ({ track, index }))
-      .filter(item => item.track.category === activeCategory);
+      .filter(item => activeCategory === "all" || item.track.category === activeCategory);
 
     /* =====================================================================
        Rendering helpers
