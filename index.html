@@ -513,6 +513,9 @@
         <button class="nav-item" type="button" data-category="english">
           <span class="nav-icon" aria-hidden="true"><svg class="music-icon" viewBox="0 0 24 24" focusable="false"><path d="M9 18V5l12-2v13M9 9l12-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="6" cy="18" r="3" fill="currentColor"></circle><circle cx="18" cy="16" r="3" fill="currentColor"></circle></svg></span><span data-i18n="english">英语歌曲</span>
         </button>
+        <button class="nav-item" type="button" data-category="running">
+          <span class="nav-icon" aria-hidden="true"><svg class="music-icon" viewBox="0 0 24 24" focusable="false"><path d="M9 18V5l12-2v13M9 9l12-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="6" cy="18" r="3" fill="currentColor"></circle><circle cx="18" cy="16" r="3" fill="currentColor"></circle></svg></span><span data-i18n="running">跑步</span>
+        </button>
       </aside>
 
       <main class="main">
@@ -596,8 +599,10 @@
          - "mandarin"  Chinese songs (internal category key)
          - "cantonese" Cantonese songs
          - "english"   English songs
-       The "all" tab (mix of every song) is built automatically; no need
-       to tag songs for it.
+         - "running"   Running songs (shown ONLY in the Running tab, they
+                       are NOT included in the "All Mixed" tab)
+       The "all" tab (mix of every song except "running") is built
+       automatically; no need to tag songs for it.
 
        The browser cannot automatically scan a folder, so this small catalog
        is how the static page knows which songs to display. Filenames are
@@ -672,6 +677,11 @@
 		 { title: "Believer", artist: "Imagine Dragons", category: "english", src: "Believer.mp3", volumeLevel: 0},
 
 
+      // 跑步歌曲 Running songs (only appear in the Running tab, not in All Mixed)
+      // Add your running songs here, for example:
+		 { title: "180bpm", artist: "Ee Yan", category: "running", src: "180bpm.mp3", volumeLevel: 0},
+
+
     ];
 
     /* =====================================================================
@@ -684,6 +694,7 @@
         mandarin: "中文",
         cantonese: "粤语",
         english: "英语",
+        running: "跑步",
         playlist: "全部曲目",
         modeAll: "顺序播放",
         modeOne: "单曲循环",
@@ -693,7 +704,7 @@
         ready: "选择一首歌曲开始聆听",
         emptyTitle: "这里还没有歌曲",
         emptyHint: "添加到这个分类的歌曲会显示在这里。",
-        categoryLabels: { all: "全部混合歌单", mandarin: "中文歌单", cantonese: "粤语歌单", english: "英语歌单" },
+        categoryLabels: { all: "全部混合歌单", mandarin: "中文歌单", cantonese: "粤语歌单", english: "英语歌单", running: "跑步歌单" },
         count: count => `${count} 首歌曲`,
         unknownArtist: "未知艺人",
         noSongs: "当前分类还没有歌曲。",
@@ -705,6 +716,7 @@
         mandarin: "Chinese",
         cantonese: "Cantonese",
         english: "English",
+        running: "Running",
         playlist: "All tracks",
         modeAll: "Play in order",
         modeOne: "Repeat one",
@@ -714,7 +726,7 @@
         ready: "Choose a track to start listening",
         emptyTitle: "No tracks yet",
         emptyHint: "Songs in this category will show up here.",
-        categoryLabels: { all: "All mixed playlist", mandarin: "Chinese playlist", cantonese: "Cantonese playlist", english: "English playlist" },
+        categoryLabels: { all: "All mixed playlist", mandarin: "Chinese playlist", cantonese: "Cantonese playlist", english: "English playlist", running: "Running playlist" },
         count: count => `${count} ${count === 1 ? "song" : "songs"}`,
         unknownArtist: "Unknown artist",
         noSongs: "There are no tracks in this category yet.",
@@ -781,9 +793,14 @@
     }
 
     const text = () => TEXT[interfaceLanguage];
+    // Categories listed here are hidden from the "All Mixed" tab and only
+    // appear under their own tab.
+    const EXCLUDED_FROM_ALL = ["running"];
     const tracksInActiveCategory = () => trackCatalog
       .map((track, index) => ({ track, index }))
-      .filter(item => activeCategory === "all" || item.track.category === activeCategory);
+      .filter(item => activeCategory === "all"
+        ? !EXCLUDED_FROM_ALL.includes(item.track.category)
+        : item.track.category === activeCategory);
 
     /* =====================================================================
        Rendering helpers
