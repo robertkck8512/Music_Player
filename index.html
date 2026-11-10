@@ -1046,11 +1046,51 @@
       if (currentTrackIndex >= 0) showToast(text().playbackError);
     });
 
+    /* =====================================================================
+       Preload durations
+       ---------------------------------------------------------------------
+       A song's length is only known once the browser reads its metadata, so
+       we quietly load the metadata of every track in the background (a few
+       at a time) and fill in the duration column without re-rendering.
+       ===================================================================== */
+    function preloadDurations(concurrency = 4) {
+      let next = 0;
+
+      const loadOne = () => {
+        if (next >= trackCatalog.length) return;
+        const track = trackCatalog[next++];
+        if (track.duration) { loadOne(); return; }
+
+        const probe = new Audio();
+        probe.preload = "metadata";
+
+        const finish = () => {
+          probe.removeAttribute("src");
+          probe.load();
+          loadOne();
+        };
+
+        probe.addEventListener("loadedmetadata", () => {
+          if (Number.isFinite(probe.duration)) {
+            track.duration = probe.duration;
+            const cell = trackList.querySelector(`.track[data-index="${track.id}"] .track-duration`);
+            if (cell) cell.textContent = formatTime(track.duration);
+          }
+          finish();
+        }, { once: true });
+        probe.addEventListener("error", finish, { once: true });
+        probe.src = track.src;
+      };
+
+      for (let i = 0; i < concurrency; i++) loadOne();
+    }
+
     /* Initialize the interface and default master volume. */
     // Keep the media element at 1; Web Audio handles master and per-track gain.
     applyTrackVolume();
     document.getElementById("volume").value = masterVolume;
     renderInterface();
+    preloadDurations();
   </script>
 </body>
 </html>
