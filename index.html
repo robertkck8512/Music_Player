@@ -38,7 +38,7 @@
     }
 
     button, input { font: inherit; }
-    button { color: inherit; }
+    button { color: inherit; -webkit-tap-highlight-color: transparent; }
     button:focus-visible, input:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 3px;
@@ -94,10 +94,14 @@
       transition: background .2s ease, border-color .2s ease, transform .2s ease;
     }
 
-    .pill-button:hover {
-      transform: translateY(-1px);
-      border-color: #71658f;
-      background: #222330;
+    /* Hover effects are limited to devices that really hover. On touch screens
+       :hover "sticks" after a tap, which made toggled buttons look stuck on. */
+    @media (hover: hover) {
+      .pill-button:hover {
+        transform: translateY(-1px);
+        border-color: #71658f;
+        background: #222330;
+      }
     }
 
     .lang-button {
@@ -153,7 +157,9 @@
       transition: color .18s ease, background .18s ease, border-color .18s ease;
     }
 
-    .nav-item:hover { color: var(--text); background: #ffffff08; }
+    @media (hover: hover) {
+      .nav-item:hover { color: var(--text); background: #ffffff08; }
+    }
     .nav-item.active {
       border-color: #c3a7ff24;
       color: var(--text);
@@ -211,7 +217,9 @@
       transition: color .18s ease, border-color .18s ease, background .18s ease, transform .18s ease;
     }
 
-    .mode-button:hover { transform: translateY(-1px); color: var(--text); border-color: #5b526f; }
+    @media (hover: hover) {
+      .mode-button:hover { transform: translateY(-1px); color: var(--text); border-color: #5b526f; }
+    }
     .mode-button.active {
       border-color: #c3a7ff66;
       color: #e6dafa;
@@ -254,7 +262,9 @@
     }
 
     .track:last-child { border-bottom: 0; }
-    .track:hover { background: #ffffff08; }
+    @media (hover: hover) {
+      .track:hover { background: #ffffff08; }
+    }
     .track:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
     .track.playing { background: #c3a7ff0d; }
     .track.playing .track-title { color: var(--accent-soft); }
@@ -352,7 +362,11 @@
     }
 
     .control-button svg { display: block; width: 55%; height: 55%; }
-    .control-button:hover, .control-button.on { color: var(--accent-soft); background: #c3a7ff12; }
+    .control-button.on { color: var(--accent-soft); background: #c3a7ff12; }
+    .control-button:active { color: var(--accent-soft); }
+    @media (hover: hover) {
+      .control-button:hover { color: var(--accent-soft); background: #c3a7ff12; }
+    }
 
     .play-button {
       display: grid;
@@ -371,7 +385,9 @@
       transition: transform .18s ease, background .18s ease;
     }
 
-    .play-button:hover { transform: scale(1.05); background: var(--accent-soft); }
+    @media (hover: hover) {
+      .play-button:hover { transform: scale(1.05); background: var(--accent-soft); }
+    }
 
     .progress-row {
       display: grid;
@@ -681,7 +697,6 @@
 		 { title: "乐乐超慢跑", artist: "小红书", category: "running", src: "乐乐超慢跑.mp3", volumeLevel: 0},
 		 { title: "精选中文跑步歌单", artist: "超哥健康指南", category: "running", src: "精选中文跑步歌单.mp3", volumeLevel: 0},
 		 { title: "精选英文跑步歌单", artist: "超哥健康指南", category: "running", src: "精选英文跑步歌单.mp3", volumeLevel: 0},
-		 { title: "Robert自创", artist: "Robert", category: "running", src: "Robert自创.mp3", volumeLevel: 0},
 
 
     ];
@@ -747,6 +762,8 @@
     let activeCategory = "all";
     let playbackMode = "all";
     let currentTrackIndex = -1;
+    let shuffleBag = [];      // songs not yet played in the current shuffle round
+    let shuffleHistory = [];  // songs played before, so "previous" can step back
     let toastTimeout;
 
     // Web Audio lets individual tracks be boosted above the normal 0–1
@@ -888,8 +905,12 @@
         ? (track.artist || text().unknownArtist)
         : text().ready;
       document.getElementById("playBtn").textContent = audio.paused ? "▶" : "Ⅱ";
-      document.getElementById("repeatBtn").classList.toggle("on", playbackMode === "one");
-      document.getElementById("shuffleBtn").classList.toggle("on", playbackMode === "shuffle");
+      const repeatBtn = document.getElementById("repeatBtn");
+      const shuffleBtn = document.getElementById("shuffleBtn");
+      repeatBtn.classList.toggle("on", playbackMode === "one");
+      shuffleBtn.classList.toggle("on", playbackMode === "shuffle");
+      repeatBtn.setAttribute("aria-pressed", String(playbackMode === "one"));
+      shuffleBtn.setAttribute("aria-pressed", String(playbackMode === "shuffle"));
     }
 
     function updateProgress() {
@@ -912,8 +933,21 @@
     /* =====================================================================
        Playback actions
        ===================================================================== */
-    function playTrack(index) {
+    function resetShuffle() {
+      shuffleBag = [];
+      shuffleHistory = [];
+    }
+
+    function playTrack(index, { fromHistory = false } = {}) {
       if (index < 0 || index >= trackCatalog.length) return;
+
+      // Remember the song we're leaving so "previous" can go back to it.
+      if (!fromHistory && currentTrackIndex >= 0 && currentTrackIndex !== index) {
+        shuffleHistory.push(currentTrackIndex);
+        if (shuffleHistory.length > 200) shuffleHistory.shift();
+      }
+      // A song played by hand shouldn't come up again in this shuffle round.
+      shuffleBag = shuffleBag.filter(i => i !== index);
 
       currentTrackIndex = index;
       applyTrackVolume();
@@ -929,20 +963,35 @@
       return tracksInActiveCategory().map(item => item.index);
     }
 
-    function playNext() {
+    // Shuffle without repeats: shuffle the whole playlist once (Fisher-Yates),
+    // play through it, then reshuffle. Every song plays once per round.
+    function pickShuffleNext(indexes) {
+      shuffleBag = shuffleBag.filter(i => indexes.includes(i) && i !== currentTrackIndex);
+      if (shuffleBag.length === 0) {
+        shuffleBag = indexes.filter(i => i !== currentTrackIndex);
+        for (let i = shuffleBag.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffleBag[i], shuffleBag[j]] = [shuffleBag[j], shuffleBag[i]];
+        }
+      }
+      return shuffleBag.pop();
+    }
+
+    // fromEnded is true only when a song finishes by itself. Repeat-one loops
+    // then, but pressing "next" by hand still moves to the next song.
+    function playNext(fromEnded = false) {
       const indexes = getActiveTrackIndexes();
       if (indexes.length === 0) return;
 
-      if (playbackMode === "one" && currentTrackIndex >= 0) {
+      if (fromEnded && playbackMode === "one" && currentTrackIndex >= 0) {
         audio.currentTime = 0;
-        audio.play();
+        audio.play().catch(() => showToast(text().playbackError));
         return;
       }
 
       let nextIndex;
       if (playbackMode === "shuffle" && indexes.length > 1) {
-        const choices = indexes.filter(index => index !== currentTrackIndex);
-        nextIndex = choices[Math.floor(Math.random() * choices.length)];
+        nextIndex = pickShuffleNext(indexes);
       } else {
         const currentPosition = indexes.indexOf(currentTrackIndex);
         nextIndex = indexes[(currentPosition + 1 + indexes.length) % indexes.length];
@@ -958,6 +1007,17 @@
 
       const indexes = getActiveTrackIndexes();
       if (indexes.length === 0) return;
+
+      if (playbackMode === "shuffle") {
+        while (shuffleHistory.length) {
+          const previous = shuffleHistory.pop();
+          if (indexes.includes(previous)) {
+            playTrack(previous, { fromHistory: true });
+            return;
+          }
+        }
+      }
+
       const currentPosition = indexes.indexOf(currentTrackIndex);
       const previousPosition = currentPosition <= 0 ? indexes.length - 1 : currentPosition - 1;
       playTrack(indexes[previousPosition]);
@@ -988,6 +1048,7 @@
     document.querySelectorAll("[data-category]").forEach(button => {
       button.addEventListener("click", () => {
         activeCategory = button.dataset.category;
+        resetShuffle();
         renderInterface();
       });
     });
@@ -995,6 +1056,7 @@
     document.querySelectorAll("[data-mode]").forEach(button => {
       button.addEventListener("click", () => {
         playbackMode = button.dataset.mode;
+        resetShuffle();
         renderInterface();
       });
     });
@@ -1006,15 +1068,17 @@
 
     document.getElementById("playBtn").addEventListener("click", togglePlayPause);
     document.getElementById("prevBtn").addEventListener("click", playPrevious);
-    document.getElementById("nextBtn").addEventListener("click", playNext);
+    document.getElementById("nextBtn").addEventListener("click", () => playNext(false));
 
     document.getElementById("shuffleBtn").addEventListener("click", () => {
       playbackMode = playbackMode === "shuffle" ? "all" : "shuffle";
+      resetShuffle();
       renderInterface();
     });
 
     document.getElementById("repeatBtn").addEventListener("click", () => {
       playbackMode = playbackMode === "one" ? "all" : "one";
+      resetShuffle();
       renderInterface();
     });
 
@@ -1035,7 +1099,7 @@
       }
       updateProgress();
     });
-    audio.addEventListener("ended", playNext);
+    audio.addEventListener("ended", () => playNext(true));
     audio.addEventListener("play", () => {
       updatePlayerDisplay();
       renderTrackList();
